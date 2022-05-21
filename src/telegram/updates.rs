@@ -2,14 +2,14 @@ use reqwest::Error;
 
 use super::models::{Response, Update};
 
-pub async fn get(host: String, token: String) -> Result<Vec<Update>, Error> {
+pub async fn get(host: &str, token: &str) -> Result<Vec<Update>, Error> {
     let request_url = format!(
         "{host}/bot{token}/getUpdates",
-        token = token.to_string(),
-        host = host.to_string()
+        token = token,
+        host = host
     );
 
-    let response = reqwest::get(&request_url).await?;
+    let response = reqwest::get(request_url).await?;
 
     let result = response.json::<Response>().await?;
 
@@ -19,51 +19,48 @@ pub async fn get(host: String, token: String) -> Result<Vec<Update>, Error> {
 #[cfg(test)]
 mod tests {
 
-    use reqwest::Error;
-use mockito;
-    use mockito::mock;
+    use httptest::{Server, Expectation, matchers::*, responders::*};
 
     #[tokio::test]
-    async fn get_updates() -> Result<(), Error> {
-        let host = &mockito::server_url();
+    async fn get_updates() {
+        let server = Server::run();
 
-        let response = r#"{
-            "ok": true,
-            "result": [
-                {
-                    "update_id": 500612408,
-                    "message": {
-                        "message_id": 71,
-                        "from": {
-                            "id": 638061488,
-                            "is_bot": false,
-                            "first_name": "Renan",
-                            "last_name": "Aragão",
-                            "language_code": "en"
-                        },
-                        "chat": {
-                            "id": 638061488,
-                            "first_name": "Renan",
-                            "last_name": "Aragão",
-                            "type": "private"
-                        },
-                        "date": 1652924741,
-                        "text": "vai"
+        server.expect(
+            Expectation::matching(request::method_path("GET", "/bottoken/getUpdates"))
+            .respond_with(json_encoded(serde_json::json!({
+                "ok": true,
+                "result": [
+                    {
+                        "update_id": 500612408,
+                        "message": {
+                            "message_id": 71,
+                            "from": {
+                                "id": 638061488,
+                                "is_bot": false,
+                                "first_name": "Renan",
+                                "last_name": "Aragão",
+                                "language_code": "en"
+                            },
+                            "chat": {
+                                "id": 638061488,
+                                "first_name": "Renan",
+                                "last_name": "Aragão",
+                                "type": "private"
+                            },
+                            "date": 1652924741,
+                            "text": "vai"
+                        }
                     }
-                }
-            ]
-        }"#;
+                ]
+            })))
+        );
 
-        let _m = mock("GET", "token/getUpdates")
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body(response)
-            .create();
+        let url = server.url("/bottoken/getUpdates");
 
-        let result = super::get(host.to_string(), "token".to_string()).await?;
+        let host = format!("{scheme}://{host}:{port}", scheme = url.scheme().unwrap(), host = url.host().unwrap(), port = url.port().unwrap());
+
+        let result = super::get(&host, "token").await.unwrap();
 
         assert_eq!(result[0].update_id, 500612408);
-
-        Ok(())
     }
 }

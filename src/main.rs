@@ -6,7 +6,7 @@ use telegram::updates as updates;
 #[tokio::main]
 async fn main() -> Result<()> {
 
-    let updates = updates::get("https://api.telegram.org".to_string(),"token".to_string()).await?;
+    let updates = updates::get("https://api.telegram.org","token").await?;
 
     println!("{:?}", updates);
 
