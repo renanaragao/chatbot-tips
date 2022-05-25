@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 is_bot: from.is_bot,
             };
         
-            Users::new(get_db().await?).insert(&mut user).await?;
+            Users::new(get_db().await?).save(&mut user).await?;
         }
         None => println!("No updates"),
     }

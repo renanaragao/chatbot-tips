@@ -22,7 +22,7 @@ mod tests {
     use httptest::{Server, Expectation, matchers::*, responders::*};
 
     #[tokio::test]
-    async fn get_updates() {
+    async fn should_get_updates() {
         let server = Server::run();
 
         server.expect(
