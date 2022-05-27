@@ -30,36 +30,32 @@ impl Users {
 #[cfg(test)]
 mod tests {
 
-    use crate::User;
-    use crate::Users;
+    use crate::models::user::User;
+    use crate::repository::users::Users;
+
     use fake::Fake;
     use fake::Faker;
     use mongodb::bson::doc;
     use mongodb::options::ClientOptions;
     use mongodb::Client;
     use mongodb::Database;
-    use std::sync::Arc;
     use try_catch::catch;
 
     #[tokio::test]
     async fn should_insert_user() {
-        let new_user = Arc::new(create_user());
+        let id = Faker.fake::<i64>();
 
         catch! {
             try {
                 let db = get_db().await.unwrap();
 
-                let mut user = User {
-                    id: new_user.id,
-                    first_name: new_user.first_name.clone(),
-                    last_name: new_user.last_name.clone(),
-                    language_code: new_user.language_code.clone(),
-                    is_bot: new_user.is_bot,
-                };
+                let mut user = create_user(id);
 
                 Users::new(db).save(&mut user).await.unwrap();
 
                 let find = find_user(user.id).await.unwrap();
+
+                delete_user(id).await.unwrap();
 
                 match find {
                     Some(find) => {
@@ -73,26 +69,20 @@ mod tests {
                 }
             }
             catch _err {
-                delete_user(new_user.id).await.unwrap();
+                delete_user(id).await.unwrap();
             }
         }
     }
 
     #[tokio::test]
     async fn should_update_user() {
-        let new_user = Arc::new(create_user());
+        let id = Faker.fake::<i64>();
 
         catch! {
             try {
                 let db = get_db().await.unwrap();
 
-                let mut user = User {
-                    id: new_user.id,
-                    first_name: new_user.first_name.clone(),
-                    last_name: new_user.last_name.clone(),
-                    language_code: new_user.language_code.clone(),
-                    is_bot: new_user.is_bot,
-                };
+                let mut user = create_user(id);
 
                 insert_user(&mut user).await.unwrap();
 
@@ -108,6 +98,8 @@ mod tests {
 
                 let find = find_user(user.id).await.unwrap();
 
+                delete_user(id).await.unwrap();
+
                 match find {
                     Some(find) => {
                         assert_eq!(find, changed_user);
@@ -116,14 +108,14 @@ mod tests {
                 }
             }
             catch _err {
-                delete_user(new_user.id).await.unwrap();
+                delete_user(id).await.unwrap();
             }
         }
     }
 
-    fn create_user() -> User {
+    fn create_user(id: i64) -> User {
         User {
-            id: Faker.fake::<i64>(),
+            id: id,
             first_name: String::from("Renan"),
             last_name: String::from("Aragão"),
             language_code: String::from("en"),
