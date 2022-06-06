@@ -1,0 +1,28 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Start MongoDB As Docker
+      # You may pin to the exact commit or the version.
+      # uses: wbari/start-mongoDB@eb9a4b97a1a252bbaebb98f5fc088ca1f972905a
+      uses: wbari/start-mongoDB@v0.2
+      with:
+        mongoDBVersion: latest
+    - uses: actions/checkout@v3
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
