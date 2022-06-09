@@ -17,4 +17,4 @@ fake = "2.4"
 rand = "0.8"
 try-catch = "0.2.2"
 uri-builder = "0.1.0"
-rocket = "0.5.0-rc.2"
+rocket = { version = "0.5.0-rc.2", features = ["tls", "json"] }

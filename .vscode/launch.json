@@ -22,7 +22,7 @@
             "args": [],
             "cwd": "${workspaceFolder}",
             "env": {
-                "TELEGRAM_TOKEN": "822796185:AAEGndiI4xOnqtx3cpB2S1imJ0x3qLkhcVs"
+                "TELEGRAM_TOKEN": "${TELEGRAM_TOKEN}"
             }
         },
         {
