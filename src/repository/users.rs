@@ -25,6 +25,10 @@ impl Users {
             .await?;
         Ok(())
     }
+
+    pub async fn get(&self, id: i64) -> Result<std::option::Option<User>, mongodb::error::Error> {
+        self.collection.find_one(doc! {"_id": id}, None).await
+    }
 }
 
 #[cfg(test)]
@@ -103,6 +107,39 @@ mod tests {
                 match find {
                     Some(find) => {
                         assert_eq!(find, changed_user);
+                    },
+                    None => panic!("User not found"),
+                }
+            }
+            catch _err {
+                delete_user(id).await.unwrap();
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn should_get_user() {
+        let id = Faker.fake::<i64>();
+
+        catch! {
+            try {
+                let db = get_db().await.unwrap();
+
+                let mut user = create_user(id);
+
+                insert_user(&mut user).await.unwrap();
+
+                let find = Users::new(db).get(user.id).await.unwrap();
+
+                delete_user(id).await.unwrap();
+
+                match find {
+                    Some(find) => {
+                        assert_eq!(find.id, user.id);
+                        assert_eq!(find.first_name, user.first_name);
+                        assert_eq!(find.last_name, user.last_name);
+                        assert_eq!(find.language_code, user.language_code);
+                        assert_eq!(find.is_bot, user.is_bot);
                     },
                     None => panic!("User not found"),
                 }
