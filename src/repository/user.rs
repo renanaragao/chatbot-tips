@@ -1,22 +1,27 @@
+use mongodb::Client;
 use crate::models::user::User;
 use mongodb::bson::doc;
 use mongodb::options::ReplaceOptions;
 use mongodb::Collection;
 use mongodb::Database;
 
-pub struct Users {
-    collection: Collection<User>,
+pub struct UserRepositoryFactory;
+
+impl UserRepositoryFactory {
+    pub fn create(&self, client: Client) -> UserRepository {
+        UserRepository(client.database("chat-tip"))
+    }
 }
 
-impl Users {
+pub struct UserRepository(Database);
+
+impl UserRepository {
     pub fn new(db: Database) -> Self {
-        Users {
-            collection: db.collection("users"),
-        }
+        UserRepository(db)
     }
 
     pub async fn save(&self, user: &mut User) -> Result<(), mongodb::error::Error> {
-        self.collection
+        self.get_collection()
             .replace_one(
                 doc! {"_id": user.id},
                 user,
@@ -27,7 +32,11 @@ impl Users {
     }
 
     pub async fn get(&self, id: i64) -> Result<std::option::Option<User>, mongodb::error::Error> {
-        self.collection.find_one(doc! {"_id": id}, None).await
+        self.get_collection().find_one(doc! {"_id": id}, None).await
+    }
+
+    fn get_collection(&self) -> Collection<User> {
+        self.0.collection::<User>("users")
     }
 }
 
@@ -35,7 +44,7 @@ impl Users {
 mod tests {
 
     use crate::models::user::User;
-    use crate::repository::users::Users;
+    use crate::repository::user::UserRepository;
 
     use fake::Fake;
     use fake::Faker;
@@ -55,7 +64,7 @@ mod tests {
 
                 let mut user = create_user(id);
 
-                Users::new(db).save(&mut user).await.unwrap();
+                UserRepository::new(db).save(&mut user).await.unwrap();
 
                 let find = find_user(user.id).await.unwrap();
 
@@ -98,7 +107,7 @@ mod tests {
                     is_bot: true,
                 };
 
-                Users::new(db).save(&mut changed_user).await.unwrap();
+                UserRepository::new(db).save(&mut changed_user).await.unwrap();
 
                 let find = find_user(user.id).await.unwrap();
 
@@ -129,7 +138,7 @@ mod tests {
 
                 insert_user(&mut user).await.unwrap();
 
-                let find = Users::new(db).get(user.id).await.unwrap();
+                let find = UserRepository::new(db).get(user.id).await.unwrap();
 
                 delete_user(id).await.unwrap();
 

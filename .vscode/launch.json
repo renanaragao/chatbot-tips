@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "type": "lldb",
             "request": "launch",
@@ -22,7 +23,8 @@
             "args": [],
             "cwd": "${workspaceFolder}",
             "env": {
-                "TELEGRAM_TOKEN": "${TELEGRAM_TOKEN}"
+                "TELEGRAM_TOKEN": "${TELEGRAM_TOKEN}",
+                "MDB_URL": "mongodb://localhost:27017"
             }
         },
         {
