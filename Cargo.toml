@@ -11,11 +11,16 @@ reqwest = { version = "0.11", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_derive = "1.0"
-httptest = "0.15.4"
 mongodb = "2.2.0"
-fake = "2.4"
 rand = "0.8"
 try-catch = "0.2.2"
 uri-builder = "0.1.0"
 rocket = { version = "0.5.0-rc.2", features = ["tls", "json"] }
 dilib = { version = "0.2.0", features = ["global"] }
+async-trait = "0.1.56"
+
+[dev-dependencies]
+mockall = "0.11.1"
+httptest = "0.15.4"
+fake = "2.4"
+

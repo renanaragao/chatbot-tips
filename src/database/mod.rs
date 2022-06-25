@@ -16,17 +16,23 @@
 
 use mongodb::bson::doc;
 use mongodb::options::ClientOptions;
-use mongodb::Client;
+use mongodb::{Client, Database};
 use rocket::fairing::AdHoc;
 
 #[derive(Debug)]
 pub struct MongoDB {
     pub client: Client,
+    pub db: Database,
 }
 
 impl MongoDB {
     fn new(client: Client) -> Self {
-        MongoDB { client }
+        let client_clone = client.clone();
+
+        MongoDB { 
+            client: client_clone,
+            db: client.database("chat-tip")
+        }
     }
 }
 
