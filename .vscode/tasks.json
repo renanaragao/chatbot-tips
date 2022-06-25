@@ -6,6 +6,11 @@
         {
             "label": "rust",
             "type": "shell",
+            "options": {
+                "env": {
+                    "MDB_URL": "mongodb://localhost:27017"
+                }
+            },
             "command": "cargo run"
         },
         {
@@ -27,6 +32,20 @@
                 "ngrok",
                 "webhook"
             ]
+        },
+        {
+            "type": "cargo",
+            "command": "test",
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "group": "test",
+            "label": "rust: cargo test",
+            "options": {
+                "env": {
+                    "MDB_URL": "mongodb://localhost:27017"
+                }
+            },
         }
     ]
 }

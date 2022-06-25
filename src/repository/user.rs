@@ -1,22 +1,30 @@
 use crate::models::user::User;
+use async_trait::async_trait;
 use mongodb::bson::doc;
 use mongodb::options::ReplaceOptions;
 use mongodb::Collection;
 use mongodb::Database;
 
-pub struct Users {
-    collection: Collection<User>,
+#[async_trait]
+pub trait IUserRepository {
+    async fn save(&self, db: &Database, user: &mut User) -> Result<(), mongodb::error::Error>;
+    async fn get(
+        &self,
+        db: &Database,
+        id: i64,
+    ) -> Result<std::option::Option<User>, mongodb::error::Error>;
 }
 
-impl Users {
-    pub fn new(db: Database) -> Self {
-        Users {
-            collection: db.collection("users"),
-        }
-    }
+pub struct UserRepository();
 
-    pub async fn save(&self, user: &mut User) -> Result<(), mongodb::error::Error> {
-        self.collection
+#[cfg(test)]
+use mockall::{automock, predicate::*};
+
+#[cfg_attr(test, automock)]
+#[async_trait]
+impl IUserRepository for UserRepository {
+    async fn save(&self, db: &Database, user: &mut User) -> Result<(), mongodb::error::Error> {
+        get_collection(db)
             .replace_one(
                 doc! {"_id": user.id},
                 user,
@@ -26,17 +34,26 @@ impl Users {
         Ok(())
     }
 
-    pub async fn get(&self, id: i64) -> Result<std::option::Option<User>, mongodb::error::Error> {
-        self.collection.find_one(doc! {"_id": id}, None).await
+    async fn get(
+        &self,
+        db: &Database,
+        id: i64,
+    ) -> Result<std::option::Option<User>, mongodb::error::Error> {
+        get_collection(db).find_one(doc! {"_id": id}, None).await
     }
+}
+
+fn get_collection(db: &Database) -> Collection<User> {
+    db.collection::<User>("users")
 }
 
 #[cfg(test)]
 mod tests {
 
     use crate::models::user::User;
-    use crate::repository::users::Users;
+    use crate::repository::user::UserRepository;
 
+    use crate::repository::user::IUserRepository;
     use fake::Fake;
     use fake::Faker;
     use mongodb::bson::doc;
@@ -51,11 +68,11 @@ mod tests {
 
         catch! {
             try {
-                let db = get_db().await.unwrap();
+                let mut db = get_db().await.unwrap();
 
                 let mut user = create_user(id);
 
-                Users::new(db).save(&mut user).await.unwrap();
+                UserRepository().save(&mut db, &mut user).await.unwrap();
 
                 let find = find_user(user.id).await.unwrap();
 
@@ -84,7 +101,7 @@ mod tests {
 
         catch! {
             try {
-                let db = get_db().await.unwrap();
+                let mut db = get_db().await.unwrap();
 
                 let mut user = create_user(id);
 
@@ -98,7 +115,7 @@ mod tests {
                     is_bot: true,
                 };
 
-                Users::new(db).save(&mut changed_user).await.unwrap();
+                UserRepository().save(&mut db, &mut changed_user).await.unwrap();
 
                 let find = find_user(user.id).await.unwrap();
 
@@ -123,13 +140,13 @@ mod tests {
 
         catch! {
             try {
-                let db = get_db().await.unwrap();
+                let mut db = get_db().await.unwrap();
 
                 let mut user = create_user(id);
 
                 insert_user(&mut user).await.unwrap();
 
-                let find = Users::new(db).get(user.id).await.unwrap();
+                let find = UserRepository().get(&mut db, user.id).await.unwrap();
 
                 delete_user(id).await.unwrap();
 
@@ -160,12 +177,6 @@ mod tests {
         }
     }
 
-    async fn get_db() -> Result<Database, mongodb::error::Error> {
-        let client_options = ClientOptions::parse("mongodb://localhost:27017").await?;
-        let client = Client::with_options(client_options)?;
-        Ok(client.database("chat-tip-tests"))
-    }
-
     async fn find_user(id: i64) -> Result<Option<User>, mongodb::error::Error> {
         let db = get_db().await?;
         let user = db
@@ -189,5 +200,50 @@ mod tests {
             .insert_one(user, None)
             .await?;
         Ok(())
+    }
+    async fn get_db() -> Result<Database, mongodb::error::Error> {
+        let client_options = ClientOptions::parse("mongodb://localhost:27017").await?;
+        let client = Client::with_options(client_options)?;
+        Ok(client.database("chat-tip-tests"))
+    }
+}
+
+#[cfg(test)]
+pub struct UserRepositoryFake();
+
+#[cfg(test)]
+#[async_trait]
+impl IUserRepository for UserRepositoryFake {
+    async fn save(&self, db: &Database, user: &mut User) -> Result<(), mongodb::error::Error> {
+        let mut repository_mock = MockUserRepository::new();
+
+        let db_clone = db.clone();
+
+        assert_eq!(638061488, user.id);
+        assert_eq!("Renan", user.first_name);
+        assert_eq!("Aragão", user.last_name);
+        assert_eq!("en", user.language_code);
+        assert_eq!(false, user.is_bot);
+        assert_eq!("chat-tip", db.name());
+
+        repository_mock
+            .expect_save()
+            .times(1)
+            .return_const(Ok(()));
+
+        repository_mock.save(&db_clone, user).await?;
+
+        Ok(())
+    }
+
+    async fn get(
+        &self,
+        _db: &Database,
+        _id: i64,
+    ) -> Result<std::option::Option<User>, mongodb::error::Error> {
+        let mut repository_mock = MockUserRepository::new();
+        repository_mock.expect_save().times(1).return_const(Ok(()));
+
+        Ok(None)
     }
 }
