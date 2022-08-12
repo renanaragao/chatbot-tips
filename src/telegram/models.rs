@@ -1,5 +1,6 @@
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
+use uri_builder::URI;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -51,4 +52,22 @@ pub struct Chat {
     pub last_name: String,
     #[serde(rename = "type")]
     pub type_field: String,
+}
+
+pub struct UriTelegram {
+    pub host: String,
+    pub token: String,
+    pub scheme: String,
+    pub port: u16,
+}
+
+impl UriTelegram {
+    pub fn new<'a>(host: String, token: String, scheme: String, port: u16) -> Self {
+        Self {
+            host,
+            token,
+            scheme,
+            port: port,
+        }
+    }
 }
