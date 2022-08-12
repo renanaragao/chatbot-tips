@@ -25,4 +25,4 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Run tests
-      run: cargo test --verbose
+      run: MDB_URL=mongodb://localhost:27017  cargo test --verbose
