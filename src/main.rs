@@ -5,6 +5,7 @@ mod database;
 mod models;
 mod repository;
 mod telegram;
+mod services;
 
 use database::MongoDB;
 use dilib::{add_scoped_trait, global::init_container, resolve};
@@ -12,13 +13,19 @@ use repository::user::{IUserRepository, UserRepository};
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::State;
-use telegram::models::Update;
+use services::chatbot::{IChatbotService, ChatbotService};
+use telegram::models::{Update, UriTelegram};
+use telegram::telegram::{ITelegramService, TelegramService};
 use uri_builder::URI;
 
+struct StateUriTelegram {
+    uri: UriTelegram
+}
+
 #[post("/update", data = "<update>")]
-async fn new_update(database: &State<MongoDB>, update: Json<Update>) -> Status {
-    let resolve = resolve!(trait IUserRepository).unwrap();
-    let repository = resolve.as_ref();
+async fn new_update(database: &State<MongoDB>, uri_telegram: &State<StateUriTelegram>, update: Json<Update>) -> Status {
+    let resolve_repository = resolve!(trait IUserRepository).unwrap();
+    let repository = resolve_repository.as_ref();
 
     let mut user = models::user::User {
         id: update.message.from.id,
@@ -30,24 +37,36 @@ async fn new_update(database: &State<MongoDB>, update: Json<Update>) -> Status {
 
     repository.save(&database.db, &mut user).await.unwrap();
 
+    let resolve_chatbot = resolve!(trait IChatbotService).unwrap();
+    let service = resolve_chatbot.as_ref();
+
+    service.new_update(&uri_telegram.uri, update.into_inner()).await.unwrap();
+
     Status::Accepted
 }
 
 #[launch]
 async fn rocket() -> _ {
-    let token = std::env::var("TELEGRAM_TOKEN")
-        .or(Err("TELEGRAM_TOKEN environment variable missing"))
-        .unwrap();
-    let path = format!("bot{token}", token = token).to_string();
-    let _uri = URI::new("https").host("api.telegram.org").path(&path);
-
     init_container(|container| {
         add_scoped_trait!(container, IUserRepository => UserRepository()).unwrap();
+        add_scoped_trait!(container, ITelegramService => TelegramService()).unwrap();
+        add_scoped_trait!(container, IChatbotService => ChatbotService()).unwrap();
     })
     .expect("unable to initialize the container");
 
     rocket::build()
         .attach(database::init())
+        .manage(StateUriTelegram {
+            uri: UriTelegram::new(
+                "api.telegram.org".to_string(),
+                std::env::var("TELEGRAM_TOKEN")
+                    .or(Err("TELEGRAM_TOKEN environment variable missing"))
+                    .unwrap()
+                    .to_string(),
+                "https".to_string(),
+                443
+            )
+        })
         .mount("/", routes![new_update])
 }
 
@@ -55,12 +74,23 @@ async fn rocket() -> _ {
 async fn rocket_test() -> ::rocket::Rocket<::rocket::Build> {
     rocket::build()
         .attach(database::init())
+        .manage(StateUriTelegram {
+            uri: UriTelegram::new(
+                "api.telegram.org".to_string(),
+                "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ".to_string(),
+                "https".to_string(),
+                443
+            )
+        })
         .mount("/", routes![new_update])
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{repository::user::{IUserRepository, UserRepositoryFake}, rocket_test};
+    use crate::{
+        repository::user::{IUserRepository, UserRepositoryFake},
+        rocket_test, services::chatbot::{IChatbotService, ChatbotServiceFake}, 
+    };
     use dilib::{add_scoped_trait, global::init_container};
 
     use super::rocket;
@@ -74,6 +104,7 @@ mod test {
 
         init_container(|container| {
             add_scoped_trait!(container, IUserRepository => UserRepositoryFake()).unwrap();
+            add_scoped_trait!(container, IChatbotService => ChatbotServiceFake()).unwrap();
         })
         .unwrap();
 
