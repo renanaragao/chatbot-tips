@@ -3,7 +3,7 @@ use uri_builder::URI;
 
 use super::models::{Response, Update};
 
-pub async fn get<'a>(uri: &'a mut URI<'a>) -> Result<Vec<Update>, Error> {
+pub async fn _get<'a>(uri: &'a mut URI<'a>) -> Result<Vec<Update>, Error> {
     let request_url = uri.path("getUpdates").build();
 
     let response = reqwest::get(request_url).await?;
@@ -55,7 +55,7 @@ mod tests {
 
         let url = server.url("/bottoken/getUpdates");
 
-        let result = super::get(
+        let result = super::_get(
             URI::new(url.scheme_str().unwrap())
                 .host(url.host().unwrap())
                 .port(url.port_u16().unwrap())
