@@ -1,0 +1,10 @@
+version: '3.7'
+services:
+  web:
+    image: renanaragao/chat-tips-bot:1.0.0-alpha
+    ports:
+      - "80:80"
+    environment:
+      - TELEGRAM_TOKEN=822796185:AAEGndiI4xOnqtx3cpB2S1imJ0x3qLkhcVs
+      - MDB_URL=mongodb+srv://sa:f1ZXltvE97Ub@serverlessinstancechatb.qxs75.mongodb.net/?retryWrites=true&w=majority
+      - MDB_DATABASE_NAME=chat-bot
