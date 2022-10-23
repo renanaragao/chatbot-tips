@@ -1,6 +1,4 @@
-[default.tls]
-key = "./key.pem"     # Path or bytes to DER-encoded ASN.1 PKCS#1/#8 key.
-certs = "./cert.pem" # Path or bytes to DER-encoded X.509 TLS cert chain.
+[development.tls]
 prefer_server_cipher_order = false
 ciphers = [
     "TLS_CHACHA20_POLY1305_SHA256",

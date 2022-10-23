@@ -29,9 +29,9 @@ impl MongoDB {
     fn new(client: Client) -> Self {
         let client_clone = client.clone();
 
-        MongoDB { 
+        MongoDB {
             client: client_clone,
-            db: client.database("chat-tip")
+            db: client.database("chat-tip"),
         }
     }
 }
@@ -51,11 +51,13 @@ async fn connect() -> mongodb::error::Result<Client> {
     let mdb_uri = std::env::var("MDB_URL")
         .or(Err("MDB_URL environment variable missing"))
         .unwrap();
+
+    let mdb_datebase_name = std::env::var("MDB_DATABASE_NAME").or(Err("MDB_DATABASE_NAME environment variable missing")).unwrap();
     let client_options = ClientOptions::parse(mdb_uri).await?;
     let client = Client::with_options(client_options)?;
     // Ping the server to see if you can connect to the cluster
     client
-        .database("chat-tip")
+        .database(mdb_datebase_name.as_str())
         .run_command(doc! {"ping": 1}, None)
         .await?;
 

@@ -8,7 +8,9 @@
             "type": "shell",
             "options": {
                 "env": {
-                    "MDB_URL": "mongodb://localhost:27017"
+                    "MDB_URL": "mongodb+srv://sa:f1ZXltvE97Ub@serverlessinstancechatb.qxs75.mongodb.net/?retryWrites=true&w=majority",
+                    "MDB_DATABASE_NAME": "chat-tip",
+                    "ROCKET_TLS": "{certs=\"./cert.pem\",key=\"./private.key\"}"
                 }
             },
             "command": "cargo run"

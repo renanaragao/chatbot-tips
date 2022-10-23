@@ -4,8 +4,8 @@ extern crate rocket;
 mod database;
 mod models;
 mod repository;
-mod telegram;
 mod services;
+mod telegram;
 
 use database::MongoDB;
 use dilib::{add_scoped_trait, global::init_container, resolve};
@@ -13,17 +13,21 @@ use repository::user::{IUserRepository, UserRepository};
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::State;
-use services::chatbot::{IChatbotService, ChatbotService};
+use services::chatbot::{ChatbotService, IChatbotService};
 use telegram::models::{Update, UriTelegram};
 use telegram::telegram::{ITelegramService, TelegramService};
 use uri_builder::URI;
 
 struct StateUriTelegram {
-    uri: UriTelegram
+    uri: UriTelegram,
 }
 
 #[post("/update", data = "<update>")]
-async fn new_update(database: &State<MongoDB>, uri_telegram: &State<StateUriTelegram>, update: Json<Update>) -> Status {
+async fn new_update(
+    database: &State<MongoDB>,
+    uri_telegram: &State<StateUriTelegram>,
+    update: Json<Update>,
+) -> Status {
     let resolve_repository = resolve!(trait IUserRepository).unwrap();
     let repository = resolve_repository.as_ref();
 
@@ -40,9 +44,17 @@ async fn new_update(database: &State<MongoDB>, uri_telegram: &State<StateUriTele
     let resolve_chatbot = resolve!(trait IChatbotService).unwrap();
     let service = resolve_chatbot.as_ref();
 
-    service.new_update(&uri_telegram.uri, update.into_inner()).await.unwrap();
+    service
+        .new_update(&uri_telegram.uri, update.into_inner())
+        .await
+        .unwrap();
 
     Status::Accepted
+}
+
+#[get("/health")]
+fn _health() -> Status {
+    Status::Ok
 }
 
 #[launch]
@@ -64,10 +76,10 @@ async fn rocket() -> _ {
                     .unwrap()
                     .to_string(),
                 "https".to_string(),
-                443
-            )
+                443,
+            ),
         })
-        .mount("/", routes![new_update])
+        .mount("/", routes![new_update, _health])
 }
 
 #[cfg(test)]
@@ -79,8 +91,8 @@ async fn rocket_test() -> ::rocket::Rocket<::rocket::Build> {
                 "api.telegram.org".to_string(),
                 "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ".to_string(),
                 "https".to_string(),
-                443
-            )
+                443,
+            ),
         })
         .mount("/", routes![new_update])
 }
@@ -89,7 +101,8 @@ async fn rocket_test() -> ::rocket::Rocket<::rocket::Build> {
 mod test {
     use crate::{
         repository::user::{IUserRepository, UserRepositoryFake},
-        rocket_test, services::chatbot::{IChatbotService, ChatbotServiceFake}, 
+        rocket_test,
+        services::chatbot::{ChatbotServiceFake, IChatbotService},
     };
     use dilib::{add_scoped_trait, global::init_container};
 
